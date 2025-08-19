@@ -2,8 +2,8 @@
 #define BPTREE_H
 
 #include <pthread.h>
-// #include <cstdbool>
-#include <cstdint>
+#include <stdbool.h>
+#include <stdint.h>
 
 #define ORDER 60 // Order of B+ tree (maximum number of keys in a node)
 

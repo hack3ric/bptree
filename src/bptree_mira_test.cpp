@@ -1,11 +1,13 @@
-#include "../include/bptree.h"
+#include "../include/bptree_mira.h"
+#include "../include/bptree_mira_internal.hpp"
+#include <stdint.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
 
 #define NUM_THREADS 8
-#define NUM_OPERATIONS (10000 / NUM_THREADS)
+#define NUM_OPERATIONS (1000000 / NUM_THREADS)
 
 typedef struct {
   bptree_t *tree;
@@ -45,9 +47,9 @@ void *worker_thread(void *arg) {
                                 :
                                 // Search for likely non-existing key
                                 (NUM_OPERATIONS * 10) + rand_r(&seed) % 1000000;
-      bptree_search(tree, search_key, &found_value);
+      bptree_search(search_key, &found_value);
     } else { // 20% inserts/updates
-      bptree_insert(tree, key, value);
+      bptree_insert(key, value);
     }
     data->ops_completed++;
   }
@@ -56,7 +58,7 @@ void *worker_thread(void *arg) {
   return NULL;
 }
 
-void populate_tree(bptree_t *tree, size_t num_items) {
+void populate_tree(size_t num_items) {
   printf("Populating tree with %zu initial items...\n", num_items);
   struct timeval start, end;
   gettimeofday(&start, NULL);
@@ -65,7 +67,7 @@ void populate_tree(bptree_t *tree, size_t num_items) {
   for (size_t i = 0; i < num_items; i++) {
     uint64_t key = rand_r(&seed);
     uint64_t value = key * 2; // Deterministic value based on key
-    bptree_insert(tree, key, value);
+    bptree_insert(key, value);
   }
 
   gettimeofday(&end, NULL);
@@ -74,18 +76,19 @@ void populate_tree(bptree_t *tree, size_t num_items) {
 }
 
 int main() {
-  bptree_t tree;
-  bptree_init(&tree);
+  ext_init();
+  // bptree_t tree;
+  bptree_init();
 
   // Populate tree with initial data (about 1M items)
-  populate_tree(&tree, 1000000);
+  populate_tree(1000);
 
   pthread_t threads[NUM_THREADS];
   thread_data_t thread_data[NUM_THREADS];
 
   // Create threads
   for (int i = 0; i < NUM_THREADS; i++) {
-    thread_data[i].tree = &tree;
+    // thread_data[i].tree = &tree;
     thread_data[i].thread_id = i;
     thread_data[i].ops_completed = 0;
     pthread_create(&threads[i], NULL, worker_thread, &thread_data[i]);
@@ -122,15 +125,15 @@ int main() {
   uint64_t test_key = 42;
   uint64_t test_value = 123456;
 
-  bptree_insert(&tree, test_key, test_value);
+  bptree_insert(test_key, test_value);
   uint64_t found_value;
-  if (bptree_search(&tree, test_key, &found_value) &&
+  if (bptree_search(test_key, &found_value) &&
       found_value == test_value) {
     printf("Tree verification passed!\n");
   } else {
     printf("Tree verification failed!\n");
   }
 
-  bptree_destroy(&tree);
+  bptree_destroy();
   return 0;
 }

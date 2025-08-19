@@ -15,11 +15,11 @@ const size_t s1_n_block = 24;
 using rbpn = DirectCache<0, 0, 0, s1_n_block, s1_nb * sizeof(bptree_node_t), 0>;
 using rbpn_R = CacheReq<rbpn>;
 
-std::vector<bptree_node_t> *g_node_pool;
+std::vector<bptree_node_t> *node_pool;
 
 void ext_init() {
-  g_node_pool = new std::vector<bptree_node_t>();
-  g_node_pool->reserve(1048576);
-  new_remotelize<bptree_node_t, rbpn, rbpn_R>(*g_node_pool, true);
+  node_pool = new std::vector<bptree_node_t>();
+  node_pool->reserve(1048576);
+  // new_remotelize<bptree_node_t, rbpn, rbpn_R>(*node_pool, true);
   std::cout << "Mira: B+ tree node pool manually remotelized" << std::endl;
 }

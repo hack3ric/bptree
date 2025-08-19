@@ -12,6 +12,7 @@
 #include <vector>
 
 extern "C" {
+// TODO: redo the entire Mira hack, run on local first to make sure it should work
 // TODO: make all methods accept index instead of ptr
 
 size_t bptree_internal_create_node(bool is_leaf) {
@@ -55,15 +56,25 @@ void bptree_init(void) {
 
 void unlock_ancestors(size_t *nodes, int count) {
   auto &pool = *node_pool;
-  std::vector<int> &pool2 = *node_pool2;
+  // std::vector<int> &pool2 = *node_pool2;
   for (int i = count - 1; i >= 0; i--) {
     pthread_rwlock_unlock(&pool[nodes[i]].lock);
   }
 }
 
 static inline bool search_node(size_t idx, uint64_t key, int *pos) {
+  if (!node_pool) {
+    *pos = 0;
+    return false;
+  }
   auto &pool = *node_pool;
-  int left = 0, right = pool[idx].num_keys - 1;
+  if (idx >= pool.size()) {
+    *pos = 0;
+    return false;
+  }
+
+  const auto &node = pool[idx];
+  int left = 0, right = node.num_keys - 1;
 
   while (left <= right) {
     int mid = (left + right) / 2;
@@ -164,7 +175,7 @@ bool bptree_insert(uint64_t key, uint64_t value) {
   int ancestor_count = 0;
 
   while (!pool[current_idx].is_leaf) {
-    int pos;
+    int pos = 0;
     search_node(current_idx, key, &pos);
     if (pos == pool[current_idx].num_keys)
       pos--;

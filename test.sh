@@ -3,3 +3,5 @@
 ../Mira/compiler/build/bin/pldisagg bptree.mlir --disagg-annotate-allocations="memory-size=10737418200" -o remote_result.mlir
 ../Mira/compiler/build/bin/pldisagg --prop-rmem remote_result.mlir -o target.mlir
 ../Mira/compiler/build/bin/pldisagg --convert-target-to-remote -cse -canonicalize target.mlir -o remote.mlir
+
+# This does not work with std::vector<bptree_node_t> but okay with std::vector<int>; next step would be 
