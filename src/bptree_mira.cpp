@@ -12,6 +12,7 @@ static bptree_node_ref_t bptree_internal_create_node(bool is_leaf) {
   pthread_rwlock_init(&node.lock, NULL);
 
   auto &pool = *node_pool;
+  // TODO: replace this as push_back cannot pass cgeist
   pool.push_back(node);
   return pool.size() - 1;
 }
@@ -93,18 +94,27 @@ static void split_child(bptree_node_ref_t parent, int index,
   int mid = (ORDER - 1) / 2;
 
   pool[new_node].num_keys = ORDER - 1 - mid - 1;
-  memcpy(pool[new_node].keys, &pool[child].keys[mid + 1],
-         pool[new_node].num_keys * sizeof(uint64_t));
+  // memcpy(pool[new_node].keys, &pool[child].keys[mid + 1],
+  //        pool[new_node].num_keys * sizeof(uint64_t));
+  for (int i = 0; i < pool[new_node].num_keys; i++) {
+    pool[new_node].keys[i] = pool[child].keys[mid + 1 + i];
+  }
 
   if (pool[child].is_leaf) {
-    memcpy(pool[new_node].values, &pool[child].values[mid + 1],
-           pool[new_node].num_keys * sizeof(uint64_t));
+    // memcpy(pool[new_node].values, &pool[child].values[mid + 1],
+    //        pool[new_node].num_keys * sizeof(uint64_t));
+    for (int i = 0; i < pool[new_node].num_keys; i++) {
+      pool[new_node].values[i] = pool[child].values[mid + 1 + i];
+    }
     pool[new_node].next = pool[child].next;
     pool[child].next = new_node;
     pool[child].num_keys = mid + 1;
   } else {
-    memcpy(pool[new_node].children, &pool[child].children[mid + 1],
-           (pool[new_node].num_keys + 1) * sizeof(bptree_node_t *));
+    // memcpy(pool[new_node].children, &pool[child].children[mid + 1],
+    //        (pool[new_node].num_keys + 1) * sizeof(bptree_node_t *));
+    for (int i = 0; i <= pool[new_node].num_keys; i++) {
+      pool[new_node].children[i] = pool[child].children[mid + 1 + i];
+    }
     pool[child].num_keys = mid;
   }
 
