@@ -1,3 +1,5 @@
 build/
 *-sysroot/
 *.mlir
+compile_commands.json
+.cache

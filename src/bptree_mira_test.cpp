@@ -1,5 +1,5 @@
-#include "../include/bptree_mira.h"
-#include "../include/bptree_mira_internal.hpp"
+#include "bptree_mira.h"
+#include "bptree_mira_internal.hpp"
 #include <stdint.h>
 #include <pthread.h>
 #include <stdio.h>

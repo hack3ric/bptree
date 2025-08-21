@@ -1,4 +1,4 @@
-#include "../include/bptree.h"
+#include "bptree.h"
 #include <stdlib.h>
 #include <string.h>
 

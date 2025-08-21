@@ -1,4 +1,4 @@
-#include "../include/bptree.h"
+#include "bptree.h"
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
