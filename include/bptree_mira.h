@@ -11,20 +11,22 @@
 extern "C" {
 #endif
 
+typedef size_t bptree_node_ref_t;
+
 typedef struct bptree_node {
   bool is_leaf;
   int num_keys;
   uint64_t keys[ORDER - 1];
   union {
     uint64_t values[ORDER - 1];          // For leaf nodes
-    size_t children[ORDER]; // For internal nodes
+    bptree_node_ref_t children[ORDER]; // For internal nodes
   };
-  size_t next; // For leaf nodes to form a linked list
+  bptree_node_ref_t next; // For leaf nodes to form a linked list
   pthread_rwlock_t lock;    // Reader-writer lock for concurrency control
 } bptree_node_t;
 
 typedef struct {
-  size_t root;
+  bptree_node_ref_t root;
   pthread_rwlock_t root_lock;
 } bptree_t;
 

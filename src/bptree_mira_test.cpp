@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <sys/time.h>
 
-#define NUM_THREADS 8
+#define NUM_THREADS 4
 #define NUM_OPERATIONS (1000000 / NUM_THREADS)
 
 typedef struct {
@@ -81,7 +81,7 @@ int main() {
   bptree_init();
 
   // Populate tree with initial data (about 1M items)
-  populate_tree(1000);
+  populate_tree(1000000);
 
   pthread_t threads[NUM_THREADS];
   thread_data_t thread_data[NUM_THREADS];

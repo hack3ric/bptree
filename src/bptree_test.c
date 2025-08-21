@@ -4,8 +4,8 @@
 #include <stdlib.h>
 #include <sys/time.h>
 
-#define NUM_THREADS 8
-#define NUM_OPERATIONS (10000 / NUM_THREADS)
+#define NUM_THREADS 4
+#define NUM_OPERATIONS (1000000 / NUM_THREADS)
 
 typedef struct {
   bptree_t *tree;

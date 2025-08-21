@@ -5,8 +5,6 @@
 #include <vector>
 
 extern std::vector<bptree_node_t> *node_pool;
-extern std::vector<int> *node_pool2;
-
 
 void ext_init();
 
