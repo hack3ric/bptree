@@ -1,5 +1,6 @@
 #include "bptree_mira.h"
 #include "bptree_mira_internal.hpp"
+#include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -29,13 +30,18 @@ static inline bptree_node_t *alloc_node() {
   // TODO: in remote, check if capacity is reached
 }
 
+static pthread_mutex_t alloc_mutex;
+
 static bptree_node_ref_t bptree_internal_create_node(bool is_leaf) {
+  pthread_mutex_lock(&alloc_mutex);
   bptree_node_t *node = alloc_node();
   memset(node, 0, sizeof(bptree_node_t));
   node->is_leaf = is_leaf;
   node->num_keys = 0;
   pthread_rwlock_init(&node->lock, NULL);
-  return pool_size() - 1;
+  bptree_node_ref_t result = pool_size() - 1;
+  pthread_mutex_unlock(&alloc_mutex);
+  return result;
 }
 
 static void bptree_internal_destroy_node(bptree_node_ref_t node) {
@@ -48,6 +54,7 @@ static void bptree_internal_destroy_node(bptree_node_ref_t node) {
 static bptree_t bptree = {};
 
 void bptree_init() {
+  pthread_mutex_init(&alloc_mutex, NULL);
   bptree.root = bptree_internal_create_node(true); // Start with a leaf node
   pthread_rwlock_init(&bptree.root_lock, NULL);
 }
