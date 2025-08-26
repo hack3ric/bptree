@@ -55,6 +55,8 @@ add_executable(bptree_test_mira_local src/bptree_mira_test.cpp)
 target_link_libraries(bptree_test_mira_local
     PRIVATE
         bptree_mira_local
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/../Mira/runtime/build/libcommon2/lib/libcommon2.a
 )
 
 # bptree_test_mira
