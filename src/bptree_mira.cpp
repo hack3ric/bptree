@@ -410,6 +410,5 @@ void pth_bm_target_update(void *target, int key) {
 }
 
 void pth_bm_target_delete(void *target, int key) {
-  bptree_delete(key);
 }
 }
