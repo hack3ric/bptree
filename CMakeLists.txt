@@ -66,6 +66,8 @@ target_link_libraries(bptree_test_mira
         libbptree_mira
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/../Mira/runtime/build/libcommon2/lib/libcommon2.a
+        ibverbs
+        nng
 )
 
 # TODO: add Pentathlon targets

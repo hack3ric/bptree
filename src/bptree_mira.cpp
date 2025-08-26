@@ -108,7 +108,7 @@ static bptree_node_ref_t bptree_internal_create_node(bool is_leaf) {
   // memset(node, 0, sizeof(bptree_node_t));
   // node->is_leaf = is_leaf;
   // node->num_keys = 0;
-  pthread_rwlock_init(&node->lock, NULL); // TODO: move rwlock to a new static vector
+  // pthread_rwlock_init(&node->lock, NULL); // TODO: move rwlock to a new static vector
   bptree_node_ref_t result = pool_size() - 1;
   node_set_is_leaf(result, is_leaf);
   node_set_num_keys(result, 0);

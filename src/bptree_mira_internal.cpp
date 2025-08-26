@@ -21,7 +21,21 @@ using rbpn_R = CacheReq<rbpn>;
 // std::vector<bptree_node_t> *node_pool;
 std::vector<uint64_t> *node_pool2;
 
+extern "C" {
+int cache_request_impl_1(int qid, uint64_t tag, int offset, bool send) {
+  return rbpn_R::cache_request_impl(qid, tag, offset, NULL, send);
+}
+
+void poll_qid1(int offset, uint16_t seq) {
+  poll_qid(offset, seq);
+}
+}
+
 void ext_init() {
+#ifndef BPTREE_MIRA_LOCAL
+  init_client();
+#endif
+
 //   node_pool = new std::vector<bptree_node_t>();
 //   node_pool->reserve(1048576);
 //   node_pool->push_back({}); // insert one empty value as NULL
