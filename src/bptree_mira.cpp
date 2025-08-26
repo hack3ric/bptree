@@ -5,8 +5,13 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
+#include <vector>
 
 #define U64_PER_NODE (1024 / sizeof(uint64_t))
+
+static std::vector<pthread_rwlock_t> node_locks;
+
+void reserve_node_locks(std::vector<pthread_rwlock_t>& locks);
 
 extern "C" {
 static inline size_t pool_size() {
@@ -81,10 +86,24 @@ static inline void node_set_next(bptree_node_ref_t node, bptree_node_ref_t next)
   pool[node * U64_PER_NODE + 2 + (ORDER - 1) + ORDER] = next;
 }
 
+static inline pthread_rwlock_t* node_lock(bptree_node_ref_t node) {
+  return &node_locks[node];
+}
+
 static void pool_set_size(size_t s) {
   auto &v = *node_pool2;
   rvector<uint64_t> *rv = (rvector<uint64_t> *)&v;
   size_t c = v.capacity();
+  if (s > c) {
+    printf("Size larger than cap, dont do this\n");
+    exit(1);
+  }
+  rv->end = rv->head + s;
+}
+
+static void locks_set_size(size_t s) {
+  rvector<pthread_rwlock_t> *rv = (rvector<pthread_rwlock_t> *)&node_locks;
+  size_t c = node_locks.capacity();
   if (s > c) {
     printf("Size larger than cap, dont do this\n");
     exit(1);
@@ -97,6 +116,8 @@ static inline bptree_node_t *alloc_node() {
   size_t size = pool_size();
   pool_set_size((size + 1) *
                 U64_PER_NODE); // pool.resize((size + 1) * U64_PER_NODE);
+  locks_set_size(size + 1);
+  pthread_rwlock_init(&node_locks[size], NULL);
   return (bptree_node_t *)&pool[size * U64_PER_NODE];
 }
 
@@ -119,7 +140,7 @@ static bptree_node_ref_t bptree_internal_create_node(bool is_leaf) {
 static void bptree_internal_destroy_node(bptree_node_ref_t node) {
   if (!node)
     return;
-  pthread_rwlock_destroy(&get_node(node)->lock);
+  // pthread_rwlock_destroy(&node_lock(node));
   // free(node);
 }
 
@@ -127,13 +148,15 @@ static bptree_t bptree = {};
 
 void bptree_init() {
   pthread_mutex_init(&alloc_mutex, NULL);
+  reserve_node_locks(node_locks);
+
   bptree.root = bptree_internal_create_node(true); // Start with a leaf node
   pthread_rwlock_init(&bptree.root_lock, NULL);
 }
 
 static void unlock_ancestors(bptree_node_ref_t *nodes, int count) {
   for (int i = count - 1; i >= 0; i--) {
-    pthread_rwlock_unlock(&get_node(nodes[i])->lock);
+    pthread_rwlock_unlock(node_lock(nodes[i]));
   }
 }
 
@@ -159,7 +182,7 @@ static bool search_node(bptree_node_ref_t node, uint64_t key, int *pos) {
 bool bptree_search(uint64_t key, uint64_t *value) {
   pthread_rwlock_rdlock(&bptree.root_lock);
   bptree_node_ref_t current = bptree.root;
-  pthread_rwlock_rdlock(&get_node(current)->lock);
+  pthread_rwlock_rdlock(node_lock(current));
   pthread_rwlock_unlock(&bptree.root_lock);
 
   while (!node_is_leaf(current)) {
@@ -169,8 +192,8 @@ bool bptree_search(uint64_t key, uint64_t *value) {
       pos--;
 
     bptree_node_ref_t next = node_value(current, pos);
-    pthread_rwlock_rdlock(&get_node(next)->lock);
-    pthread_rwlock_unlock(&get_node(current)->lock);
+    pthread_rwlock_rdlock(node_lock(next));
+    pthread_rwlock_unlock(node_lock(current));
     current = next;
   }
 
@@ -179,7 +202,7 @@ bool bptree_search(uint64_t key, uint64_t *value) {
   if (found && value) {
     *value = node_value(current, pos);
   }
-  pthread_rwlock_unlock(&get_node(current)->lock);
+  pthread_rwlock_unlock(node_lock(current));
   return found;
 }
 
@@ -232,12 +255,12 @@ bool bptree_insert(uint64_t key, uint64_t value) {
     bptree_node_ref_t new_root = bptree_internal_create_node(false);
     bptree.root = new_root;
     node_set_child(new_root, 0, root);
-    pthread_rwlock_wrlock(&get_node(new_root)->lock);
-    pthread_rwlock_wrlock(&get_node(root)->lock);
+    pthread_rwlock_wrlock(node_lock(new_root));
+    pthread_rwlock_wrlock(node_lock(root));
     split_child(new_root, 0, root);
     root = new_root;
   } else {
-    pthread_rwlock_wrlock(&get_node(root)->lock);
+    pthread_rwlock_wrlock(node_lock(root));
   }
   pthread_rwlock_unlock(&bptree.root_lock);
 
@@ -254,14 +277,14 @@ bool bptree_insert(uint64_t key, uint64_t value) {
 
     ancestors[ancestor_count++] = current;
     bptree_node_ref_t child = node_value(current, pos);
-    pthread_rwlock_wrlock(&get_node(child)->lock);
+    pthread_rwlock_wrlock(node_lock(child));
 
     if (node_num_keys(child) == ORDER - 1) {
       split_child(current, pos, child);
       if (key > node_key(current, pos)) {
-        pthread_rwlock_unlock(&get_node(child)->lock);
+        pthread_rwlock_unlock(node_lock(child));
         child = node_value(current, pos + 1);
-        pthread_rwlock_wrlock(&get_node(child)->lock);
+        pthread_rwlock_wrlock(node_lock(child));
       }
     }
     current = child;
@@ -272,7 +295,7 @@ bool bptree_insert(uint64_t key, uint64_t value) {
     // Key already exists, update value
     node_set_value(current, pos, value);
     unlock_ancestors(ancestors, ancestor_count);
-    pthread_rwlock_unlock(&get_node(current)->lock);
+    pthread_rwlock_unlock(node_lock(current));
     return false;
   }
 
@@ -287,7 +310,7 @@ bool bptree_insert(uint64_t key, uint64_t value) {
   node_set_num_keys(current, node_num_keys(current) + 1);
 
   unlock_ancestors(ancestors, ancestor_count);
-  pthread_rwlock_unlock(&get_node(current)->lock);
+  pthread_rwlock_unlock(node_lock(current));
   return true;
 }
 

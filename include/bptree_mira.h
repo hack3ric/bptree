@@ -5,7 +5,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define ORDER 59 // Order of B+ tree (maximum number of keys in a node)
+#define ORDER 60 // Order of B+ tree (maximum number of keys in a node)
 
 #ifdef __cplusplus
 extern "C" {
@@ -22,7 +22,7 @@ typedef struct bptree_node {
     bptree_node_ref_t children[ORDER]; // For internal nodes
   };
   bptree_node_ref_t next; // For leaf nodes to form a linked list
-  pthread_rwlock_t lock;  // Reader-writer lock for concurrency control
+  // pthread_rwlock_t lock;  // Reader-writer lock for concurrency control
 } bptree_node_t;
 
 typedef struct {

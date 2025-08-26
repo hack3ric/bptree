@@ -45,11 +45,16 @@ void ext_init() {
 // #endif
 
   node_pool2 = new std::vector<uint64_t>();
-  node_pool2->reserve(1048576 * sizeof(uint64_t));
+  node_pool2->reserve(1048576 * 128);
   node_pool2->resize(1024 / sizeof(uint64_t),
                      0); // insert one empty value as NULL
 #ifndef BPTREE_MIRA_LOCAL
   new_remotelize<uint64_t, rbpn, rbpn_R>(*node_pool2, true);
   std::cout << "Mira: B+ tree node pool manually remotelized" << std::endl;
 #endif
+}
+
+void reserve_node_locks(std::vector<pthread_rwlock_t>& locks) {
+  locks.reserve(1048576);
+  locks.resize(1);
 }

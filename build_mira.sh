@@ -4,7 +4,7 @@ set -e
 mira_compiler_bin="../Mira/compiler/build/bin"
 mira_llvm_bin="../Mira/llvm-project/build/bin"
 
-rm *.mlir *.o *.ll
+rm *.mlir *.o *.ll || :
 
 "$mira_compiler_bin"/cgeist -S -std=c++17 --emit-llvm-dialect -I include src/bptree_mira.cpp -function='*' -o bptree_lower_ref.mlir --sysroot=focal-amd64-sysroot/
 "$mira_llvm_bin"/mlir-translate --mlir-to-llvmir bptree_lower_ref.mlir -o lower_ref.ll
