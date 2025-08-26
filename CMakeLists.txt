@@ -24,46 +24,44 @@ include_directories(
 )
 
 # libbptree
-add_library(libbptree STATIC
+add_library(bptree STATIC
     src/bptree.c
 )
-target_link_libraries(libbptree PUBLIC Threads::Threads)
+target_link_libraries(bptree PUBLIC Threads::Threads)
 
 # libbptree_mira_local
-add_library(libbptree_mira_local STATIC
+add_library(bptree_mira_local STATIC
     # src/bptree_mira.cpp
     lower_ref.o
     src/bptree_mira_internal.cpp
 )
-target_compile_definitions(libbptree_mira_local PUBLIC BPTREE_MIRA_LOCAL)
-target_link_libraries(libbptree_mira_local PUBLIC Threads::Threads)
+target_compile_definitions(bptree_mira_local PUBLIC BPTREE_MIRA_LOCAL)
+target_link_libraries(bptree_mira_local PUBLIC Threads::Threads)
 
 # libbptree_mira
-add_library(libbptree_mira STATIC
+add_library(bptree_mira STATIC
     # src/bptree_mira.cpp
     lower.o
     src/bptree_mira_internal.cpp
 )
-target_link_libraries(libbptree_mira PUBLIC Threads::Threads)
+target_link_libraries(bptree_mira PUBLIC Threads::Threads)
 
 # bptree_test
 add_executable(bptree_test src/bptree_test.c)
-target_link_libraries(bptree_test PRIVATE libbptree)
+target_link_libraries(bptree_test PRIVATE bptree)
 
 # bptree_test_mira_local
 add_executable(bptree_test_mira_local src/bptree_mira_test.cpp)
 target_link_libraries(bptree_test_mira_local
     PRIVATE
-        libbptree_mira_local
-    PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/../Mira/runtime/build/libcommon2/lib/libcommon2.a
+        bptree_mira_local
 )
 
 # bptree_test_mira
 add_executable(bptree_test_mira src/bptree_mira_test.cpp)
 target_link_libraries(bptree_test_mira
     PRIVATE
-        libbptree_mira
+        bptree_mira
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/../Mira/runtime/build/libcommon2/lib/libcommon2.a
         ibverbs
