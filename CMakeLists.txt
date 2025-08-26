@@ -31,8 +31,8 @@ target_link_libraries(libbptree PUBLIC Threads::Threads)
 
 # libbptree_mira_local
 add_library(libbptree_mira_local STATIC
-    src/bptree_mira.cpp
-    # lower_ref.o
+    # src/bptree_mira.cpp
+    lower_ref.o
     src/bptree_mira_internal.cpp
 )
 target_compile_definitions(libbptree_mira_local PUBLIC BPTREE_MIRA_LOCAL)
