@@ -406,7 +406,7 @@ void pth_bm_target_insert(void *target, int key) {
 }
 
 void pth_bm_target_update(void *target, int key) {
-  bptree_insert(key, 0xcafecafe)
+  bptree_insert(key, 0xcafecafe);
 }
 
 void pth_bm_target_delete(void *target, int key) {
