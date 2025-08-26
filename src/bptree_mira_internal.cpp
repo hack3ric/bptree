@@ -24,12 +24,12 @@ std::vector<uint64_t> *node_pool2;
 
 extern "C" {
 int cache_request_impl_1(int qid, uint64_t tag, int offset, bool send) {
-  printf("cache_request_impl_1(%d, %lu, %d, %d)\n", qid, tag, offset, send);
+  // printf("cache_request_impl_1(%d, %lu, %d, %d)\n", qid, tag, offset, send);
   return rbpn_R::cache_request_impl(qid, tag, offset, NULL, send);
 }
 
 void poll_qid1(int offset, uint16_t seq) {
-  printf("poll_qid1(%d, %d)\n", offset, seq);
+  // printf("poll_qid1(%d, %d)\n", offset, seq);
   poll_qid(offset, seq);
 }
 }
