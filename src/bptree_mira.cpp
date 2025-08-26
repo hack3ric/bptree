@@ -387,4 +387,29 @@ void bptree_destroy(bptree_t *tree) {
   tree->root = NULL;
 }
 */
+
+void *pth_bm_target_create() {
+  bptree_init();
+  return nullptr;
+}
+
+void pth_bm_target_destroy(void *target) {
+  bptree_destroy();
+}
+
+void pth_bm_target_read(void *target, int key) {
+  bptree_search(key, nullptr);
+}
+
+void pth_bm_target_insert(void *target, int key) {
+  bptree_insert(key, 0xdeadbeef);
+}
+
+void pth_bm_target_update(void *target, int key) {
+  bptree_insert(key, 0xcafecafe)
+}
+
+void pth_bm_target_delete(void *target, int key) {
+  bptree_delete(key);
+}
 }
