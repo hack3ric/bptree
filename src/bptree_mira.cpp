@@ -1,4 +1,5 @@
 #include "bptree_mira.h"
+#include "../../Mira/runtime/libcommon2/include/rvector.h"
 #include "bptree_mira_internal.hpp"
 #include <pthread.h>
 #include <stdlib.h>
@@ -19,15 +20,23 @@ static inline bptree_node_t *get_node(bptree_node_ref_t node) {
   return (bptree_node_t *)&pool[node * U64_PER_NODE];
 }
 
+static void pool_set_size(size_t s) {
+  auto &v = *node_pool2;
+  rvector<uint64_t> *rv = (rvector<uint64_t> *)&v;
+  size_t c = v.capacity();
+  if (s > c) {
+    printf("Size larger than cap, dont do this\n");
+    exit(1);
+  }
+  rv->end = rv->head + s;
+}
+
 static inline bptree_node_t *alloc_node() {
   auto &pool = *node_pool2;
   size_t size = pool_size();
-  // TODO: this fails cgeist
-  // pool.resize((size + 1) * U64_PER_NODE);
-
+  pool_set_size((size + 1) *
+                U64_PER_NODE); // pool.resize((size + 1) * U64_PER_NODE);
   return (bptree_node_t *)&pool[size * U64_PER_NODE];
-  // TODO: lock
-  // TODO: in remote, check if capacity is reached
 }
 
 static pthread_mutex_t alloc_mutex;
