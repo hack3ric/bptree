@@ -389,6 +389,7 @@ void bptree_destroy(bptree_t *tree) {
 */
 
 void *pth_bm_target_create() {
+  ext_init();
   bptree_init();
   return nullptr;
 }
