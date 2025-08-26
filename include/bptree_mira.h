@@ -5,7 +5,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define ORDER 60 // Order of B+ tree (maximum number of keys in a node)
+#define ORDER 59 // Order of B+ tree (maximum number of keys in a node)
 
 #ifdef __cplusplus
 extern "C" {
@@ -14,15 +14,15 @@ extern "C" {
 typedef size_t bptree_node_ref_t;
 
 typedef struct bptree_node {
-  bool is_leaf;
-  int num_keys;
+  uint64_t is_leaf;  // bool
+  uint64_t num_keys; // int
   uint64_t keys[ORDER - 1];
   union {
-    uint64_t values[ORDER - 1];          // For leaf nodes
+    uint64_t values[ORDER - 1];        // For leaf nodes
     bptree_node_ref_t children[ORDER]; // For internal nodes
   };
   bptree_node_ref_t next; // For leaf nodes to form a linked list
-  pthread_rwlock_t lock;    // Reader-writer lock for concurrency control
+  pthread_rwlock_t lock;  // Reader-writer lock for concurrency control
 } bptree_node_t;
 
 typedef struct {

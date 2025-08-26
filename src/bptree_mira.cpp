@@ -1,6 +1,7 @@
 #include "bptree_mira.h"
 #include "../../Mira/runtime/libcommon2/include/rvector.h"
 #include "bptree_mira_internal.hpp"
+#include <cstdint>
 #include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,6 +19,26 @@ static inline bptree_node_t *get_node(bptree_node_ref_t node) {
   if (!node)
     return nullptr;
   return (bptree_node_t *)&pool[node * U64_PER_NODE];
+}
+
+static inline bool node_is_leaf(bptree_node_ref_t node) {
+  auto &pool = *node_pool2;
+  return pool[node * U64_PER_NODE];
+}
+
+static inline void node_set_is_leaf(bptree_node_ref_t node, bool is_leaf) {
+  auto &pool = *node_pool2;
+  pool[node * U64_PER_NODE] = is_leaf; // >> 56
+}
+
+static inline int node_num_keys(bptree_node_ref_t node) {
+  auto &pool = *node_pool2;
+  return pool[node * U64_PER_NODE + 1];
+}
+
+static inline void node_set_num_keys(bptree_node_ref_t node, int num_keys) {
+  auto &pool = *node_pool2;
+  pool[node * U64_PER_NODE + 1] = num_keys;
 }
 
 static void pool_set_size(size_t s) {
@@ -45,10 +66,12 @@ static bptree_node_ref_t bptree_internal_create_node(bool is_leaf) {
   pthread_mutex_lock(&alloc_mutex);
   bptree_node_t *node = alloc_node();
   memset(node, 0, sizeof(bptree_node_t));
-  node->is_leaf = is_leaf;
-  node->num_keys = 0;
+  // node->is_leaf = is_leaf;
+  // node->num_keys = 0;
   pthread_rwlock_init(&node->lock, NULL);
   bptree_node_ref_t result = pool_size() - 1;
+  node_set_is_leaf(result, is_leaf);
+  node_set_num_keys(result, 0);
   pthread_mutex_unlock(&alloc_mutex);
   return result;
 }
@@ -75,7 +98,7 @@ static void unlock_ancestors(bptree_node_ref_t *nodes, int count) {
 }
 
 static bool search_node(bptree_node_ref_t node, uint64_t key, int *pos) {
-  int left = 0, right = get_node(node)->num_keys - 1;
+  int left = 0, right = node_num_keys(node) - 1;
 
   while (left <= right) {
     int mid = (left + right) / 2;
@@ -99,10 +122,10 @@ bool bptree_search(uint64_t key, uint64_t *value) {
   pthread_rwlock_rdlock(&get_node(current)->lock);
   pthread_rwlock_unlock(&bptree.root_lock);
 
-  while (!get_node(current)->is_leaf) {
+  while (!node_is_leaf(current)) {
     int pos;
     search_node(current, key, &pos);
-    if (pos == get_node(current)->num_keys)
+    if (pos == node_num_keys(current))
       pos--;
 
     bptree_node_ref_t next = get_node(current)->children[pos];
@@ -122,50 +145,50 @@ bool bptree_search(uint64_t key, uint64_t *value) {
 
 static void split_child(bptree_node_ref_t parent, int index,
                         bptree_node_ref_t child) {
-  bptree_node_ref_t new_node =
-      bptree_internal_create_node(get_node(child)->is_leaf);
+  bptree_node_ref_t new_node = bptree_internal_create_node(node_is_leaf(child));
   int mid = (ORDER - 1) / 2;
 
-  get_node(new_node)->num_keys = ORDER - 1 - mid - 1;
+  node_set_num_keys(new_node, ORDER - 1 - mid - 1);
   // memcpy(get_node(new_node)->keys, &get_node(child)->keys[mid + 1],
-  //        get_node(new_node)->num_keys * sizeof(uint64_t));
-  for (int i = 0; i < get_node(new_node)->num_keys; i++) {
+  //        node_num_keys(new_node) * sizeof(uint64_t));
+  for (int i = 0; i < node_num_keys(new_node); i++) {
     get_node(new_node)->keys[i] = get_node(child)->keys[mid + 1 + i];
   }
 
-  if (get_node(child)->is_leaf) {
+  if (node_is_leaf(child)) {
     // memcpy(get_node(new_node)->values, &get_node(child)->values[mid + 1],
-    //        get_node(new_node)->num_keys * sizeof(uint64_t));
-    for (int i = 0; i < get_node(new_node)->num_keys; i++) {
+    //        node_num_keys(new_node) * sizeof(uint64_t));
+    for (int i = 0; i < node_num_keys(new_node); i++) {
       get_node(new_node)->values[i] = get_node(child)->values[mid + 1 + i];
     }
     get_node(new_node)->next = get_node(child)->next;
     get_node(child)->next = new_node;
-    get_node(child)->num_keys = mid + 1;
+    node_set_num_keys(child, mid + 1);
   } else {
     // memcpy(get_node(new_node)->children, &get_node(child)->children[mid + 1],
-    //        (get_node(new_node)->num_keys + 1) * sizeof(bptree_node_t *));
-    for (int i = 0; i <= get_node(new_node)->num_keys; i++) {
+    //        (node_num_keys(new_node) + 1) * sizeof(bptree_node_t *));
+    for (int i = 0; i <= node_num_keys(new_node); i++) {
       get_node(new_node)->children[i] = get_node(child)->children[mid + 1 + i];
     }
-    get_node(child)->num_keys = mid;
+    node_set_num_keys(child, mid);
   }
 
-  for (int i = get_node(parent)->num_keys; i > index; i--) {
+  for (int i = node_num_keys(parent); i > index; i--) {
     get_node(parent)->keys[i] = get_node(parent)->keys[i - 1];
     get_node(parent)->children[i + 1] = get_node(parent)->children[i];
   }
 
   get_node(parent)->keys[index] = get_node(child)->keys[mid];
   get_node(parent)->children[index + 1] = new_node;
-  get_node(parent)->num_keys++;
+  // get_node(parent)->num_keys++;
+  node_set_num_keys(parent, node_num_keys(parent) + 1);
 }
 
 bool bptree_insert(uint64_t key, uint64_t value) {
   pthread_rwlock_wrlock(&bptree.root_lock);
   bptree_node_ref_t root = bptree.root;
 
-  if (get_node(root)->num_keys == ORDER - 1) {
+  if (node_num_keys(root) == ORDER - 1) {
     bptree_node_ref_t new_root = bptree_internal_create_node(false);
     bptree.root = new_root;
     get_node(new_root)->children[0] = root;
@@ -183,17 +206,17 @@ bool bptree_insert(uint64_t key, uint64_t value) {
   bptree_node_ref_t ancestors[32]; // Stack for lock coupling
   int ancestor_count = 0;
 
-  while (!get_node(current)->is_leaf) {
+  while (!node_is_leaf(current)) {
     int pos;
     search_node(current, key, &pos);
-    if (pos == get_node(current)->num_keys)
+    if (pos == node_num_keys(current))
       pos--;
 
     ancestors[ancestor_count++] = current;
     bptree_node_ref_t child = get_node(current)->children[pos];
     pthread_rwlock_wrlock(&get_node(child)->lock);
 
-    if (get_node(child)->num_keys == ORDER - 1) {
+    if (node_num_keys(child) == ORDER - 1) {
       split_child(current, pos, child);
       if (key > get_node(current)->keys[pos]) {
         pthread_rwlock_unlock(&get_node(child)->lock);
@@ -214,14 +237,14 @@ bool bptree_insert(uint64_t key, uint64_t value) {
   }
 
   // Insert into leaf node
-  for (int i = get_node(current)->num_keys - 1; i >= pos; i--) {
+  for (int i = node_num_keys(current) - 1; i >= pos; i--) {
     get_node(current)->keys[i + 1] = get_node(current)->keys[i];
     get_node(current)->values[i + 1] = get_node(current)->values[i];
   }
 
   get_node(current)->keys[pos] = key;
   get_node(current)->values[pos] = value;
-  get_node(current)->num_keys++;
+  node_set_num_keys(current, node_num_keys(current) + 1);
 
   unlock_ancestors(ancestors, ancestor_count);
   pthread_rwlock_unlock(&get_node(current)->lock);
